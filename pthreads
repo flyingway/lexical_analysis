@@ -1,0 +1,87 @@
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#define NUM_THREADS 4
+clock_t start,stop;//计时器 
+double duration;//时间段 
+int N;
+int *X;
+int gSum[NUM_THREADS];
+void* Summation(void *pArg){   //累加函数 
+ int tNum= *((int *)pArg);
+ int lSum=0;
+ int start,end;
+ int i;
+ start = (N/NUM_THREADS)*tNum; //起点头部位置 
+ // printf("start is:%d\n",start);
+ end = (N/NUM_THREADS)*(tNum+1);  //尾部位置 
+ //printf("end is:%d\n",end);
+ if(tNum == NUM_THREADS -1)    //若为最后一条线程， 
+  end =N; //则尾部为N 
+ for(i=start;i<end;i++) //累加运算 
+  lSum+=X[i];
+ gSum[tNum]=lSum;
+ free(pArg);//释放指针 
+}
+/* 获取数字（可优化为键入）*/ 
+void initArr(int length){
+ int i;
+ //puts("input array length:：");
+  N=length;//数串长度 
+ X=(int*)malloc(N*sizeof(int));//动态分配空间 
+ for(i=0;i<N;i++)//循环赋值 
+ {
+   X[i]=i+1;
+   //printf("%d\t",X[i]);
+ }
+}
+
+void usual(int length){//常规累加函数 
+	N=length;
+	int sum,i,j;
+	for(i=0;i<N;i++){
+		sum+=i+1;
+	}
+	//printf("%d\n",sum);
+}
+/*主函数*/ 
+int main(void){
+ int j,sum=0;
+ int length,i;
+ scanf("%d",&length);
+  
+ //for(i=0;i<1000;i++){
+ pthread_t tHandles[NUM_THREADS];//pthread类型初始地址
+ initArr(length);
+ for(j=0;j<NUM_THREADS;j++ ){//为子线程分配空间 
+  int *threadNum =(int*)malloc(4);//强转后赋给每条线程 
+  *threadNum=j;
+//  printf("threadNum is:%d\n",*threadNum);
+ start=clock();//并行运算开始计时 
+  pthread_create(&tHandles[j],NULL,Summation,(void*)threadNum);//创建子线程 
+ } 
+
+ for(j=0;j<NUM_THREADS;j++){
+  pthread_join(tHandles[j],NULL);//主线程等待子线程结束 
+  sum+= gSum[j];//各线程和累加
+ }
+ //printf(" %d\n",sum);
+//}
+stop=clock();//计时结束 
+duration=((double)(stop-start))/CLK_TCK;//统计 
+printf("tick1= %f\n",(double)(stop-start));
+printf("duration1= %6.2e\n",duration);
+
+
+start=clock();//开始计时 
+//for(i=0;i<1000;i++){
+usual(length);
+//}
+stop=clock();//计时结束 
+duration=((double)(stop-start))/CLK_TCK;//统计 
+printf("tick2= %f\n",(double)(stop-start));
+printf("duration2= %6.2e\n",duration);
+
+ return 0;
+}
